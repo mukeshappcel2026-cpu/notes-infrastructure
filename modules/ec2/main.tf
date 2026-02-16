@@ -29,12 +29,6 @@ variable "dynamodb_table_arn" {
   type        = string
 }
 
-variable "ecr_repository_arn" {
-  description = "ECR repository ARN for pull permissions"
-  type        = string
-  default     = ""
-}
-
 variable "user_data" {
   description = "User data script"
   type        = string
@@ -141,9 +135,8 @@ resource "aws_iam_role_policy" "s3_access" {
 
 # ECR pull permissions for Docker deployment
 resource "aws_iam_role_policy" "ecr_pull" {
-  count = var.ecr_repository_arn != "" ? 1 : 0
-  name  = "ECRPullAccess"
-  role  = aws_iam_role.ec2.id
+  name = "ECRPullAccess"
+  role = aws_iam_role.ec2.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -162,7 +155,7 @@ resource "aws_iam_role_policy" "ecr_pull" {
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchCheckLayerAvailability"
         ]
-        Resource = var.ecr_repository_arn
+        Resource = "arn:aws:ecr:*:*:repository/${lower(var.app_name)}-*"
       }
     ]
   })

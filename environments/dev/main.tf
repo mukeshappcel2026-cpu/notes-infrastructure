@@ -140,7 +140,6 @@ module "ec2" {
   subnet_id          = module.vpc.public_subnet_ids[0]
   security_group_id  = aws_security_group.ec2.id
   dynamodb_table_arn = module.dynamodb.table_arn
-  ecr_repository_arn = module.ecr.repository_arn
   user_data          = local.user_data
 }
 
