@@ -19,3 +19,8 @@ dynamodb_write_capacity = 5
 # Deployment Configuration
 # IMPORTANT: Replace with a globally unique bucket name
 deployment_bucket_name = "notesapp-deployment-mukesh-20260215"
+
+# Monitoring Configuration
+# Set your email to receive CloudWatch alarm notifications
+# Leave empty to skip email notifications
+alert_email = ""

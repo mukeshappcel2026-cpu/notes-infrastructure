@@ -50,3 +50,9 @@ variable "deployment_bucket_name" {
   description = "S3 bucket for deployment artifacts"
   type        = string
 }
+
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications (leave empty to skip)"
+  type        = string
+  default     = ""
+}

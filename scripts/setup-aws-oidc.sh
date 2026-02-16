@@ -60,26 +60,50 @@ aws iam create-role \
   --assume-role-policy-document file://trust-policy-app.json \
   2>/dev/null || echo "Role already exists"
 
-# Create policy for application deployment
+# Create policy for application deployment (Docker/ECR-based)
 cat > app-deploy-policy.json << EOF
 {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "EC2Describe",
       "Effect": "Allow",
       "Action": [
         "ec2:DescribeInstances",
-        "ec2:DescribeInstanceStatus",
-        "elbv2:DescribeLoadBalancers",
-        "elbv2:DescribeTargetGroups",
-        "elbv2:DescribeTargetHealth",
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:ListBucket",
+        "ec2:DescribeInstanceStatus"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ECRAuth",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ECRPushPull",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeRepositories",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": "arn:aws:ecr:*:${AWS_ACCOUNT_ID}:repository/notesapp-*"
+    },
+    {
+      "Sid": "SSMDeploy",
+      "Effect": "Allow",
+      "Action": [
         "ssm:SendCommand",
         "ssm:GetCommandInvocation",
-        "ssm:DescribeInstanceInformation",
-        "ssm:StartSession"
+        "ssm:DescribeInstanceInformation"
       ],
       "Resource": "*"
     }
@@ -221,9 +245,9 @@ echo ""
 echo "2. Add GitHub Secrets to notes-infrastructure repository:"
 echo "   AWS_ROLE_ARN=arn:aws:iam::${AWS_ACCOUNT_ID}:role/GitHubActions-Terraform"
 echo ""
-echo "3. Add GitHub Variables to notes-app repository:"
+echo "3. Add GitHub Variables to notes-app repository (optional, have defaults):"
 echo "   AWS_REGION=us-east-1"
-echo "   DEPLOYMENT_BUCKET=<your-deployment-bucket>"
+echo "   DYNAMODB_TABLE=Notes"
 echo ""
 echo "4. Initialize Terraform with backend:"
 echo "   cd environments/dev"

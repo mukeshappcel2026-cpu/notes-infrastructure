@@ -4,88 +4,91 @@ set -e
 # Update system
 yum update -y
 
-# Install Node.js 18
-curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-yum install -y nodejs
+# Install Docker
+yum install -y docker
+systemctl enable docker
+systemctl start docker
 
-# Create app directory
-mkdir -p /home/ec2-user/notes-app
-cd /home/ec2-user/notes-app
+# Add ec2-user to docker group
+usermod -aG docker ec2-user
 
-# Create package.json
-cat > package.json << 'EOF'
+# Install CloudWatch Agent (free tier: 5GB log ingestion + 5GB storage)
+yum install -y amazon-cloudwatch-agent
+
+# Create logs directory for Docker container output
+mkdir -p /home/ec2-user/notes-app/logs
+
+# Configure CloudWatch Agent for structured logging
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWEOF'
 {
-  "name": "notes-api",
-  "version": "1.0.0",
-  "main": "src/server.js",
-  "dependencies": {
-    "express": "^4.18.2",
-    "aws-sdk": "^2.1450.0",
-    "body-parser": "^1.20.2",
-    "uuid": "^9.0.0"
+  "agent": {
+    "run_as_user": "root"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/home/ec2-user/notes-app/logs/app.log",
+            "log_group_name": "${log_group_app}",
+            "log_stream_name": "{instance_id}/app",
+            "retention_in_days": 7
+          },
+          {
+            "file_path": "/var/log/messages",
+            "log_group_name": "${log_group_sys}",
+            "log_stream_name": "{instance_id}/system",
+            "retention_in_days": 7
+          }
+        ]
+      }
+    }
   }
 }
-EOF
+CWEOF
 
-# Create src directory
-mkdir -p src
+# Start CloudWatch Agent
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
 
-# Create a placeholder server (will be replaced by deployment)
-cat > src/server.js << 'EOFSERVER'
-const express = require('express');
-const app = express();
-const port = 3000;
+# Login to ECR (uses instance role credentials via IMDS)
+REGION="${aws_region}"
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text --region "$REGION")
+aws ecr get-login-password --region "$REGION" | \
+  docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
 
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    message: 'Waiting for deployment...'
-  });
-});
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Placeholder server running on port $${port}`);
-});
-EOFSERVER
-
-# Install dependencies
-npm install --production
-
-# Create systemd service
-cat > /etc/systemd/system/notes-app.service << 'EOF'
-[Unit]
-Description=Notes API Service
-After=network.target
-
-[Service]
-Type=simple
-User=ec2-user
-WorkingDirectory=/home/ec2-user/notes-app
-Environment="PORT=3000"
-Environment="AWS_REGION=${aws_region}"
-Environment="DYNAMODB_TABLE=${dynamodb_table}"
-Environment="NODE_ENV=${environment}"
-ExecStart=/usr/bin/node src/server.js
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
+# Run placeholder container until first CI/CD deployment pushes a real image
+# The deploy workflow will: docker pull -> docker stop -> docker run
+docker run -d \
+  --name notes-app \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e PORT=3000 \
+  -e AWS_REGION=${aws_region} \
+  -e DYNAMODB_TABLE=${dynamodb_table} \
+  -e NODE_ENV=${environment} \
+  -v /home/ec2-user/notes-app/logs:/app/logs \
+  node:18-alpine \
+  sh -c 'node -e "
+const http = require(\"http\");
+http.createServer((req, res) => {
+  if (req.url === \"/health\") {
+    res.writeHead(200, {\"Content-Type\": \"application/json\"});
+    res.end(JSON.stringify({status: \"healthy\", message: \"Waiting for deployment...\"}));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(3000, \"0.0.0.0\", () => console.log(\"Placeholder running on 3000\"));
+"'
 
 # Set permissions
 chown -R ec2-user:ec2-user /home/ec2-user/notes-app
 
-# Start service
-systemctl daemon-reload
-systemctl enable notes-app
-systemctl start notes-app
-
-# Wait for service to start
+# Wait for container to start
 sleep 5
 
 # Log status
-systemctl status notes-app
-
-echo "Installation completed successfully!"
+docker ps
+echo "Docker setup completed successfully!"

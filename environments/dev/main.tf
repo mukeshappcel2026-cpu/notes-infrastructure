@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -31,7 +31,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# ------------------------------------------------------------------
 # VPC Module
+# EC2 is deployed in public subnets (no NAT needed)
+# ------------------------------------------------------------------
 module "vpc" {
   source = "../../modules/vpc"
 
@@ -41,24 +44,20 @@ module "vpc" {
   availability_zones = slice(data.aws_availability_zones.available.names, 0, 2)
 }
 
+# ------------------------------------------------------------------
 # Security Group for EC2
+# Removed: ALB SG reference. Now accepts traffic directly on port 3000.
+# SSH removed (use SSM Session Manager instead).
+# ------------------------------------------------------------------
 resource "aws_security_group" "ec2" {
   name        = "${var.app_name}-${var.environment}-EC2-SG"
   description = "Security group for EC2 instances"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    description     = "Allow traffic from ALB"
-    from_port       = 3000
-    to_port         = 3000
-    protocol        = "tcp"
-    security_groups = [module.alb.alb_security_group_id]
-  }
-
-  ingress {
-    description = "Allow SSH (remove in production)"
-    from_port   = 22
-    to_port     = 22
+    description = "Allow app traffic from anywhere (API Gateway forwards here)"
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -76,7 +75,9 @@ resource "aws_security_group" "ec2" {
   }
 }
 
+# ------------------------------------------------------------------
 # DynamoDB Module
+# ------------------------------------------------------------------
 module "dynamodb" {
   source = "../../modules/dynamodb"
 
@@ -87,7 +88,9 @@ module "dynamodb" {
   write_capacity = var.dynamodb_write_capacity
 }
 
-# S3 Module for Deployments
+# ------------------------------------------------------------------
+# S3 Module for Deployment Artifacts
+# ------------------------------------------------------------------
 module "s3_deployment" {
   source = "../../modules/s3"
 
@@ -96,20 +99,38 @@ module "s3_deployment" {
   bucket_name = var.deployment_bucket_name
 }
 
-# User Data Script
+# ------------------------------------------------------------------
+# ECR Module - container registry managed as IaC
+# ------------------------------------------------------------------
+module "ecr" {
+  source = "../../modules/ecr"
 
-# User Data Script
+  app_name              = var.app_name
+  environment           = var.environment
+  image_retention_count = 5
+}
 
+# ------------------------------------------------------------------
 # User Data Script
+# Log group names are computed here (not from cloudwatch module)
+# to avoid circular dependency: user_data -> cloudwatch -> ec2 -> user_data
+# ------------------------------------------------------------------
 locals {
+  app_log_group_name    = "/${var.app_name}/${var.environment}/application"
+  system_log_group_name = "/${var.app_name}/${var.environment}/system"
+
   user_data = templatefile("${path.module}/user-data.sh", {
     aws_region     = var.aws_region
     dynamodb_table = module.dynamodb.table_name
     environment    = var.environment
+    log_group_app  = local.app_log_group_name
+    log_group_sys  = local.system_log_group_name
   })
 }
 
-# EC2 Module
+# ------------------------------------------------------------------
+# EC2 Module - deployed in public subnet (no NAT instance needed)
+# ------------------------------------------------------------------
 module "ec2" {
   source = "../../modules/ec2"
 
@@ -119,16 +140,34 @@ module "ec2" {
   subnet_id          = module.vpc.public_subnet_ids[0]
   security_group_id  = aws_security_group.ec2.id
   dynamodb_table_arn = module.dynamodb.table_arn
+  ecr_repository_arn = module.ecr.repository_arn
   user_data          = local.user_data
 }
 
-# ALB Module
-module "alb" {
-  source = "../../modules/alb"
+# ------------------------------------------------------------------
+# API Gateway Module (replaces ALB - 1M free calls/month)
+# ------------------------------------------------------------------
+module "api_gateway" {
+  source = "../../modules/api_gateway"
 
-  app_name           = var.app_name
-  environment        = var.environment
-  vpc_id             = module.vpc.vpc_id
-  subnet_ids         = module.vpc.public_subnet_ids
-  target_instance_id = module.ec2.instance_id
+  app_name                = var.app_name
+  environment             = var.environment
+  aws_region              = var.aws_region
+  ec2_instance_private_ip = module.ec2.instance_private_ip
+  ec2_instance_public_ip  = module.ec2.instance_public_ip
+  vpc_id                  = module.vpc.vpc_id
+  app_port                = 3000
+}
+
+# ------------------------------------------------------------------
+# CloudWatch Module - monitoring, alarms, logging (all free tier)
+# ------------------------------------------------------------------
+module "cloudwatch" {
+  source = "../../modules/cloudwatch"
+
+  app_name        = var.app_name
+  environment     = var.environment
+  ec2_instance_id = module.ec2.instance_id
+  aws_region      = var.aws_region
+  sns_email       = var.alert_email
 }
