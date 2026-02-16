@@ -1,0 +1,23 @@
+alb_dns_name = "NotesApp-dev-ALB-158991822.us-east-1.elb.amazonaws.com"
+alb_url = "http://NotesApp-dev-ALB-158991822.us-east-1.elb.amazonaws.com"
+deployment_bucket = "notesapp-deployment-mukesh-20260215"
+dynamodb_table_name = "Notes"
+ec2_instance_id = "i-08b549e0c01d5c890"
+ec2_public_ip = "3.236.155.151"
+test_commands = <<EOT
+# Health check
+curl http://NotesApp-dev-ALB-158991822.us-east-1.elb.amazonaws.com/health
+    
+# Create a note
+curl -X POST http://NotesApp-dev-ALB-158991822.us-east-1.elb.amazonaws.com/notes \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"testuser","title":"Test Note","content":"Hello from Terraform!"}'
+    
+# Get notes
+curl http://NotesApp-dev-ALB-158991822.us-east-1.elb.amazonaws.com/notes/testuser
+    
+# SSH into instance (if needed)
+aws ssm start-session --target i-08b549e0c01d5c890
+
+EOT
+vpc_id = "vpc-0e29addcf41f6565b"
