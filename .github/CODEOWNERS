@@ -1,0 +1,15 @@
+# CODEOWNERS — maps Terraform modules to owning teams
+# Last match wins (GitHub spec)
+
+# Default: platform team owns everything
+* @mukeshappcel2026-cpu/platform
+
+# Module-level ownership (same team for now, split when teams grow)
+/modules/vpc/         @mukeshappcel2026-cpu/platform
+/modules/ec2/         @mukeshappcel2026-cpu/platform
+/modules/s3/          @mukeshappcel2026-cpu/platform
+/modules/dynamodb/    @mukeshappcel2026-cpu/platform
+/modules/api_gateway/ @mukeshappcel2026-cpu/platform
+/modules/cloudwatch/  @mukeshappcel2026-cpu/platform
+/modules/ecr/         @mukeshappcel2026-cpu/platform
+/environments/        @mukeshappcel2026-cpu/platform
