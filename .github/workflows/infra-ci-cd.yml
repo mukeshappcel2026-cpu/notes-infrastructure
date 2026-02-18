@@ -11,6 +11,8 @@ on:
     paths:
       - 'modules/**'
       - 'environments/**'
+      - '.github/workflows/**'
+  workflow_dispatch:  # Allow manual triggers
 
 permissions:
   id-token: write   # Required for OIDC
