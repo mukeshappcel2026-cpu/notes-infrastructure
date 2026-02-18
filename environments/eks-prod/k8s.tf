@@ -4,20 +4,34 @@
 ###############################################################################
 
 # Import orphaned K8s resources created by cancelled applies.
-# These blocks are safe to leave — they no-op if the resource is already in state.
+# These blocks are safe to leave — they no-op if already in state.
 import {
   to = kubernetes_service_account.api
   id = "prod/notes-api-sa"
 }
-
 import {
   to = kubernetes_service_account.worker
   id = "prod/notes-worker-sa"
 }
-
 import {
   to = kubernetes_service.api
   id = "prod/notes-api-svc"
+}
+import {
+  to = kubernetes_deployment.api
+  id = "prod/notes-api"
+}
+import {
+  to = kubernetes_deployment.worker
+  id = "prod/notes-worker"
+}
+import {
+  to = kubernetes_horizontal_pod_autoscaler.api
+  id = "prod/notes-api-hpa"
+}
+import {
+  to = kubernetes_horizontal_pod_autoscaler.worker
+  id = "prod/notes-worker-hpa"
 }
 
 provider "kubernetes" {
