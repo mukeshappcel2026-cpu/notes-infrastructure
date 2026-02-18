@@ -116,7 +116,7 @@ jobs:
     name: "Apply — dev"
     needs: plan
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment: production-infra  # Requires manual approval in GitHub
 
     steps:
@@ -168,7 +168,7 @@ jobs:
     name: "Apply — eks-prod"
     needs: plan
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment: eks-prod-infra  # Requires manual approval in GitHub
 
     steps:
