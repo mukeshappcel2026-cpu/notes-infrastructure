@@ -181,12 +181,10 @@ resource "kubernetes_deployment" "api" {
 
         container {
           name  = "notes-api"
-          # TODO: Switch back to ECR once app images are pushed
-          # image = "${aws_ecr_repository.notes_app.repository_url}:${var.api_image_tag}"
-          image = "nginx:alpine"
+          image = "${aws_ecr_repository.notes_app.repository_url}:${var.api_image_tag}"
 
           port {
-            container_port = 80
+            container_port = 3000
             protocol       = "TCP"
           }
 
@@ -196,7 +194,7 @@ resource "kubernetes_deployment" "api" {
           }
           env {
             name  = "PORT"
-            value = "80"
+            value = "3000"
           }
           env {
             name  = "DYNAMODB_TABLE"
@@ -253,8 +251,8 @@ resource "kubernetes_deployment" "api" {
 
           liveness_probe {
             http_get {
-              path = "/"
-              port = 80
+              path = "/health"
+              port = 3000
             }
             initial_delay_seconds = 10
             period_seconds        = 15
@@ -262,8 +260,8 @@ resource "kubernetes_deployment" "api" {
 
           readiness_probe {
             http_get {
-              path = "/"
-              port = 80
+              path = "/health"
+              port = 3000
             }
             initial_delay_seconds = 5
             period_seconds        = 10
@@ -316,10 +314,7 @@ resource "kubernetes_deployment" "worker" {
 
         container {
           name  = "notes-worker"
-          # TODO: Switch back to ECR once app images are pushed
-          # image = "${aws_ecr_repository.notes_worker.repository_url}:${var.worker_image_tag}"
-          image = "busybox:latest"
-          command = ["sh", "-c", "echo 'Worker placeholder running' && sleep infinity"]
+          image = "${aws_ecr_repository.notes_worker.repository_url}:${var.worker_image_tag}"
 
           env {
             name  = "NODE_ENV"
@@ -459,10 +454,11 @@ resource "kubernetes_service" "api" {
 
   spec {
     selector = { app = "notes-api" }
-    type     = "ClusterIP"
+    type     = "NodePort"
     port {
       port        = 80
-      target_port = 80
+      target_port = 3000
+      node_port   = 30080
       protocol    = "TCP"
     }
   }

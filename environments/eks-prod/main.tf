@@ -312,11 +312,11 @@ resource "aws_security_group_rule" "nodes_to_cluster" {
   security_group_id        = aws_security_group.eks_cluster.id
 }
 
-# ALB → nodes (app traffic + health checks)
+# ALB → nodes (app traffic via NodePort + health checks)
 resource "aws_security_group_rule" "alb_to_nodes" {
   type                     = "ingress"
-  from_port                = 80
-  to_port                  = 80
+  from_port                = 30080
+  to_port                  = 30080
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.alb.id
   security_group_id        = aws_security_group.eks_nodes.id
@@ -325,8 +325,8 @@ resource "aws_security_group_rule" "alb_to_nodes" {
 # NLB health checks (NLB preserves client IP, allow from VPC CIDR)
 resource "aws_security_group_rule" "nlb_to_nodes" {
   type              = "ingress"
-  from_port         = 80
-  to_port           = 80
+  from_port         = 30080
+  to_port           = 30080
   protocol          = "tcp"
   cidr_blocks       = [var.vpc_cidr]
   security_group_id = aws_security_group.eks_nodes.id
@@ -512,6 +512,18 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.node_ecr,
     aws_iam_role_policy_attachment.node_ssm,
   ]
+}
+
+# --- Attach EKS nodes to ALB/NLB target groups ---
+
+resource "aws_autoscaling_attachment" "alb" {
+  autoscaling_group_name = aws_eks_node_group.main.resources[0].autoscaling_groups[0].name
+  lb_target_group_arn    = aws_lb_target_group.api.arn
+}
+
+resource "aws_autoscaling_attachment" "nlb" {
+  autoscaling_group_name = aws_eks_node_group.main.resources[0].autoscaling_groups[0].name
+  lb_target_group_arn    = aws_lb_target_group.nlb_api.arn
 }
 
 # --- CloudWatch Log Group for EKS ---
@@ -727,21 +739,25 @@ resource "aws_lb" "alb" {
 }
 
 resource "aws_lb_target_group" "api" {
-  name        = "${var.app_name}-${var.environment}-API-TG"
-  port        = 80
+  name_prefix = "api-"
+  port        = 30080
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+  target_type = "instance"
 
   health_check {
-    path                = "/"
-    port                = "traffic-port"
+    path                = "/health"
+    port                = "30080"
     protocol            = "HTTP"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     interval            = 15
     timeout             = 5
     matcher             = "200"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = { Name = "${var.app_name}-${var.environment}-API-TG" }
@@ -773,19 +789,23 @@ resource "aws_lb" "nlb" {
 }
 
 resource "aws_lb_target_group" "nlb_api" {
-  name        = "${var.app_name}-${var.environment}-NLB-TG"
-  port        = 80
+  name_prefix = "nlb-"
+  port        = 30080
   protocol    = "TCP"
   vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+  target_type = "instance"
 
   health_check {
     protocol            = "HTTP"
-    path                = "/"
-    port                = "traffic-port"
+    path                = "/health"
+    port                = "30080"
     healthy_threshold   = 2
     unhealthy_threshold = 2
     interval            = 10
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = { Name = "${var.app_name}-${var.environment}-NLB-TG" }
