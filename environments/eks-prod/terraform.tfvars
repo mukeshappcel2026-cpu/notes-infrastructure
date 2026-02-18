@@ -12,7 +12,7 @@ private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
 
 # EKS Cluster Configuration
 cluster_name        = "notes-cluster"
-cluster_version     = "1.29"
+cluster_version     = "1.32"
 node_instance_types = ["m5.xlarge"]
 node_desired_size   = 3
 node_min_size       = 2
