@@ -462,17 +462,11 @@ resource "kubernetes_service" "api" {
     name      = "notes-api-svc"
     namespace = kubernetes_namespace.app.metadata[0].name
     labels    = { app = "notes-api", "app.kubernetes.io/part-of" = "notes-app" }
-    annotations = {
-      "service.beta.kubernetes.io/aws-load-balancer-type"            = "external"
-      "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" = "ip"
-      "service.beta.kubernetes.io/aws-load-balancer-arn"             = aws_lb.nlb.arn
-      "service.beta.kubernetes.io/aws-load-balancer-scheme"          = "internet-facing"
-    }
   }
 
   spec {
     selector = { app = "notes-api" }
-    type     = "LoadBalancer"
+    type     = "ClusterIP"
     port {
       port        = 80
       target_port = 80
