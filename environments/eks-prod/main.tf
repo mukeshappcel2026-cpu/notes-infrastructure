@@ -646,6 +646,42 @@ resource "aws_iam_role_policy" "alb_controller" {
   })
 }
 
+# --- EBS CSI Driver Role (required for PVC provisioning on EKS 1.23+) ---
+
+resource "aws_iam_role" "ebs_csi" {
+  name = "${var.app_name}-${var.environment}-EBS-CSI"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = local.oidc_provider_arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${local.oidc_issuer}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          "${local.oidc_issuer}:aud" = "sts.amazonaws.com"
+        }
+      }
+    }]
+  })
+
+  tags = { Name = "${var.app_name}-${var.environment}-EBS-CSI" }
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi" {
+  role       = aws_iam_role.ebs_csi.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name             = aws_eks_cluster.main.name
+  addon_name               = "aws-ebs-csi-driver"
+  service_account_role_arn = aws_iam_role.ebs_csi.arn
+
+  depends_on = [aws_eks_node_group.main]
+}
+
 ###############################################################################
 # 5. LOAD BALANCERS — ALB + NLB
 ###############################################################################
