@@ -133,6 +133,16 @@ variable "dynamodb_table_name" {
 }
 
 # ---------------------------------------------------------------------------
+# EKS Console Access
+# ---------------------------------------------------------------------------
+
+variable "console_admin_arn" {
+  description = "IAM user or role ARN to grant EKS cluster admin access (for AWS Console)"
+  type        = string
+  default     = ""
+}
+
+# ---------------------------------------------------------------------------
 # Monitoring
 # ---------------------------------------------------------------------------
 

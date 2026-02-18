@@ -29,6 +29,9 @@ domain_name     = "notes.example.com"
 # Database Configuration
 dynamodb_table_name = "Notes"
 
+# EKS Console Access
+console_admin_arn = "arn:aws:iam::855575884365:root"
+
 # Monitoring Configuration
 # Set your email to receive alarm notifications
 alert_email = ""

@@ -387,6 +387,11 @@ resource "aws_eks_cluster" "main" {
     endpoint_public_access  = true
   }
 
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions  = true
+  }
+
   enabled_cluster_log_types = ["api", "audit", "authenticator"]
 
   tags = { Name = var.cluster_name }
@@ -395,6 +400,26 @@ resource "aws_eks_cluster" "main" {
     aws_iam_role_policy_attachment.eks_cluster_policy,
     aws_iam_role_policy_attachment.eks_vpc_resource_controller,
   ]
+}
+
+# --- EKS Access Entry: Allow console IAM user to view K8s resources ---
+
+resource "aws_eks_access_entry" "console_admin" {
+  count         = var.console_admin_arn != "" ? 1 : 0
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = var.console_admin_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "console_admin" {
+  count         = var.console_admin_arn != "" ? 1 : 0
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_eks_access_entry.console_admin[0].principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
 }
 
 # --- OIDC Provider (for IRSA) ---
