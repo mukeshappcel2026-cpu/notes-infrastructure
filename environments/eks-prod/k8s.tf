@@ -367,7 +367,7 @@ resource "kubernetes_deployment" "worker" {
 # StatefulSet: Redis
 # ---------------------------------------------------------------------------
 
-resource "kubernetes_stateful_set" "redis" {
+resource "kubernetes_deployment" "redis" {
   wait_for_rollout = false
 
   metadata {
@@ -381,8 +381,7 @@ resource "kubernetes_stateful_set" "redis" {
   }
 
   spec {
-    service_name = "redis"
-    replicas     = 1
+    replicas = 1
 
     selector {
       match_labels = { app = "redis" }
@@ -420,16 +419,10 @@ resource "kubernetes_stateful_set" "redis" {
             }
           }
         }
-      }
-    }
 
-    volume_claim_template {
-      metadata { name = "redis-data" }
-      spec {
-        access_modes       = ["ReadWriteOnce"]
-        storage_class_name = "gp2"
-        resources {
-          requests = { storage = var.environment == "prod" ? "10Gi" : "1Gi" }
+        volume {
+          name = "redis-data"
+          empty_dir {}
         }
       }
     }
