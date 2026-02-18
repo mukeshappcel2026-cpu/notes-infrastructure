@@ -181,10 +181,12 @@ resource "kubernetes_deployment" "api" {
 
         container {
           name  = "notes-api"
-          image = "${aws_ecr_repository.notes_app.repository_url}:${var.api_image_tag}"
+          # TODO: Switch back to ECR once app images are pushed
+          # image = "${aws_ecr_repository.notes_app.repository_url}:${var.api_image_tag}"
+          image = "nginx:alpine"
 
           port {
-            container_port = 3000
+            container_port = 80
             protocol       = "TCP"
           }
 
@@ -194,7 +196,7 @@ resource "kubernetes_deployment" "api" {
           }
           env {
             name  = "PORT"
-            value = "3000"
+            value = "80"
           }
           env {
             name  = "DYNAMODB_TABLE"
@@ -251,8 +253,8 @@ resource "kubernetes_deployment" "api" {
 
           liveness_probe {
             http_get {
-              path = "/health"
-              port = 3000
+              path = "/"
+              port = 80
             }
             initial_delay_seconds = 10
             period_seconds        = 15
@@ -260,8 +262,8 @@ resource "kubernetes_deployment" "api" {
 
           readiness_probe {
             http_get {
-              path = "/ready"
-              port = 3000
+              path = "/"
+              port = 80
             }
             initial_delay_seconds = 5
             period_seconds        = 10
@@ -314,7 +316,10 @@ resource "kubernetes_deployment" "worker" {
 
         container {
           name  = "notes-worker"
-          image = "${aws_ecr_repository.notes_worker.repository_url}:${var.worker_image_tag}"
+          # TODO: Switch back to ECR once app images are pushed
+          # image = "${aws_ecr_repository.notes_worker.repository_url}:${var.worker_image_tag}"
+          image = "busybox:latest"
+          command = ["sh", "-c", "echo 'Worker placeholder running' && sleep infinity"]
 
           env {
             name  = "NODE_ENV"
@@ -470,7 +475,7 @@ resource "kubernetes_service" "api" {
     type     = "LoadBalancer"
     port {
       port        = 80
-      target_port = 3000
+      target_port = 80
       protocol    = "TCP"
     }
   }

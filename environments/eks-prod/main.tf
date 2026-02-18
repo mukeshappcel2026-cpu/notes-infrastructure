@@ -315,8 +315,8 @@ resource "aws_security_group_rule" "nodes_to_cluster" {
 # ALB → nodes (app traffic + health checks)
 resource "aws_security_group_rule" "alb_to_nodes" {
   type                     = "ingress"
-  from_port                = 3000
-  to_port                  = 3000
+  from_port                = 80
+  to_port                  = 80
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.alb.id
   security_group_id        = aws_security_group.eks_nodes.id
@@ -325,8 +325,8 @@ resource "aws_security_group_rule" "alb_to_nodes" {
 # NLB health checks (NLB preserves client IP, allow from VPC CIDR)
 resource "aws_security_group_rule" "nlb_to_nodes" {
   type              = "ingress"
-  from_port         = 3000
-  to_port           = 3000
+  from_port         = 80
+  to_port           = 80
   protocol          = "tcp"
   cidr_blocks       = [var.vpc_cidr]
   security_group_id = aws_security_group.eks_nodes.id
@@ -667,13 +667,13 @@ resource "aws_lb" "alb" {
 
 resource "aws_lb_target_group" "api" {
   name        = "${var.app_name}-${var.environment}-API-TG"
-  port        = 3000
+  port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
-    path                = "/health"
+    path                = "/"
     port                = "traffic-port"
     protocol            = "HTTP"
     healthy_threshold   = 2
@@ -713,14 +713,14 @@ resource "aws_lb" "nlb" {
 
 resource "aws_lb_target_group" "nlb_api" {
   name        = "${var.app_name}-${var.environment}-NLB-TG"
-  port        = 3000
+  port        = 80
   protocol    = "TCP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
     protocol            = "HTTP"
-    path                = "/health"
+    path                = "/"
     port                = "traffic-port"
     healthy_threshold   = 2
     unhealthy_threshold = 2
