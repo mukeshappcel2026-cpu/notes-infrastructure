@@ -123,6 +123,8 @@ resource "kubernetes_secret" "app" {
 # ---------------------------------------------------------------------------
 
 resource "kubernetes_deployment" "api" {
+  wait_for_rollout = false
+
   metadata {
     name      = "notes-api"
     namespace = kubernetes_namespace.app.metadata[0].name
@@ -275,6 +277,8 @@ resource "kubernetes_deployment" "api" {
 # ---------------------------------------------------------------------------
 
 resource "kubernetes_deployment" "worker" {
+  wait_for_rollout = false
+
   metadata {
     name      = "notes-worker"
     namespace = kubernetes_namespace.app.metadata[0].name
@@ -359,6 +363,8 @@ resource "kubernetes_deployment" "worker" {
 # ---------------------------------------------------------------------------
 
 resource "kubernetes_stateful_set" "redis" {
+  wait_for_rollout = false
+
   metadata {
     name      = "redis"
     namespace = kubernetes_namespace.app.metadata[0].name
