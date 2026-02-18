@@ -110,8 +110,8 @@ resource "kubernetes_secret" "app" {
   }
 
   data = {
-    "google-client-id" = "placeholder-replace-in-ci"
-    "jwt-secret"       = "placeholder-replace-in-ci"
+    "google-client-id" = var.google_client_id
+    "jwt-secret"       = var.jwt_secret
     "db-password"      = "placeholder-replace-in-ci"
   }
 
