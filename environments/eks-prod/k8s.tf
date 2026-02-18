@@ -3,28 +3,6 @@
 #                        Services, Ingress, HPA, Redis StatefulSet
 ###############################################################################
 
-# Import orphaned K8s resources created by cancelled applies.
-# These blocks are safe to leave — they no-op if already in state.
-import {
-  to = kubernetes_service_account.api
-  id = "prod/notes-api-sa"
-}
-import {
-  to = kubernetes_service_account.worker
-  id = "prod/notes-worker-sa"
-}
-import {
-  to = kubernetes_service.api
-  id = "prod/notes-api-svc"
-}
-import {
-  to = kubernetes_deployment.api
-  id = "prod/notes-api"
-}
-import {
-  to = kubernetes_deployment.worker
-  id = "prod/notes-worker"
-}
 provider "kubernetes" {
   host                   = aws_eks_cluster.main.endpoint
   cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)

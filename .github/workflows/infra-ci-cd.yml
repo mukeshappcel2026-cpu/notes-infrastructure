@@ -195,11 +195,8 @@ jobs:
         run: terraform apply -var-file=terraform.tfvars -auto-approve
 
       - name: Configure kubectl
-        working-directory: environments/eks-prod
         run: |
-          CLUSTER_NAME=$(terraform output -raw eks_cluster_name)
-          REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
-          aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION"
+          aws eks update-kubeconfig --name "notes-cluster" --region "us-east-1"
 
       - name: Verify EKS Deployment
         run: |
