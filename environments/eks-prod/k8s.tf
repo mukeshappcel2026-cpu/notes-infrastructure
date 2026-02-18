@@ -427,7 +427,7 @@ resource "kubernetes_stateful_set" "redis" {
       metadata { name = "redis-data" }
       spec {
         access_modes       = ["ReadWriteOnce"]
-        storage_class_name = var.environment == "prod" ? "gp3" : "gp2"
+        storage_class_name = "gp2"
         resources {
           requests = { storage = var.environment == "prod" ? "10Gi" : "1Gi" }
         }
