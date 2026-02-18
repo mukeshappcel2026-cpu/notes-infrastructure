@@ -830,8 +830,8 @@ resource "aws_lb_listener" "nlb_tcp" {
 resource "aws_dynamodb_table" "notes" {
   name         = "${var.dynamodb_table_name}-${var.environment}"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "noteId"
-  range_key    = "userId"
+  hash_key     = "userId"
+  range_key    = "noteId"
 
   attribute {
     name = "noteId"
