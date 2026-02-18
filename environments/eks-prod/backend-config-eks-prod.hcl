@@ -1,8 +1,8 @@
 # S3 backend configuration for EKS prod environment
 # Usage: terraform init -backend-config=backend-config-eks-prod.hcl
 
-bucket         = "notesapp-terraform-state"
+bucket         = "notesapp-terraform-state-855575884365"
 key            = "eks-prod/terraform.tfstate"
 region         = "us-east-1"
-dynamodb_table = "terraform-locks"
+dynamodb_table = "terraform-state-locks"
 encrypt        = true
