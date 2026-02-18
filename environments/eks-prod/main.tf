@@ -210,7 +210,7 @@ resource "aws_route_table_association" "private" {
 
 resource "aws_security_group" "alb" {
   name        = "${var.app_name}-${var.environment}-ALB-SG"
-  description = "Application Load Balancer — HTTP/HTTPS from internet"
+  description = "Application Load Balancer - HTTP/HTTPS from internet"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -911,7 +911,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
-  comment             = "${var.app_name} frontend — ${var.environment}"
+  comment             = "${var.app_name} frontend - ${var.environment}"
   price_class         = "PriceClass_100"
 
   # S3 Origin (static assets)
