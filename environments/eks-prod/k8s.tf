@@ -238,12 +238,12 @@ resource "kubernetes_deployment" "api" {
 
           resources {
             requests = {
-              cpu    = var.environment == "prod" ? "500m" : "250m"
-              memory = var.environment == "prod" ? "512Mi" : "256Mi"
+              cpu    = "100m"
+              memory = "128Mi"
             }
             limits = {
-              cpu    = var.environment == "prod" ? "1000m" : "500m"
-              memory = var.environment == "prod" ? "1Gi" : "512Mi"
+              cpu    = "250m"
+              memory = "256Mi"
             }
           }
 
@@ -340,12 +340,12 @@ resource "kubernetes_deployment" "worker" {
 
           resources {
             requests = {
-              cpu    = var.environment == "prod" ? "250m" : "100m"
-              memory = var.environment == "prod" ? "256Mi" : "128Mi"
+              cpu    = "50m"
+              memory = "64Mi"
             }
             limits = {
-              cpu    = var.environment == "prod" ? "500m" : "250m"
-              memory = var.environment == "prod" ? "512Mi" : "256Mi"
+              cpu    = "150m"
+              memory = "128Mi"
             }
           }
         }
@@ -371,7 +371,7 @@ resource "kubernetes_stateful_set" "redis" {
 
   spec {
     service_name = "redis"
-    replicas     = var.environment == "prod" ? 3 : 1
+    replicas     = 1
 
     selector {
       match_labels = { app = "redis" }
@@ -400,12 +400,12 @@ resource "kubernetes_stateful_set" "redis" {
 
           resources {
             requests = {
-              cpu    = var.environment == "prod" ? "250m" : "100m"
-              memory = var.environment == "prod" ? "256Mi" : "128Mi"
+              cpu    = "50m"
+              memory = "64Mi"
             }
             limits = {
-              cpu    = var.environment == "prod" ? "500m" : "250m"
-              memory = var.environment == "prod" ? "512Mi" : "256Mi"
+              cpu    = "150m"
+              memory = "128Mi"
             }
           }
         }
@@ -539,8 +539,8 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "api" {
   }
 
   spec {
-    min_replicas = var.environment == "prod" ? 3 : 2
-    max_replicas = var.environment == "prod" ? 10 : 4
+    min_replicas = 2
+    max_replicas = 4
 
     scale_target_ref {
       api_version = "apps/v1"
@@ -579,8 +579,8 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "worker" {
   }
 
   spec {
-    min_replicas = var.environment == "prod" ? 2 : 1
-    max_replicas = var.environment == "prod" ? 8 : 3
+    min_replicas = 1
+    max_replicas = 3
 
     scale_target_ref {
       api_version = "apps/v1"
