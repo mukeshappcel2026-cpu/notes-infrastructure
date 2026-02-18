@@ -25,15 +25,6 @@ import {
   to = kubernetes_deployment.worker
   id = "prod/notes-worker"
 }
-import {
-  to = kubernetes_horizontal_pod_autoscaler.api
-  id = "prod/notes-api-hpa"
-}
-import {
-  to = kubernetes_horizontal_pod_autoscaler.worker
-  id = "prod/notes-worker-hpa"
-}
-
 provider "kubernetes" {
   host                   = aws_eks_cluster.main.endpoint
   cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
