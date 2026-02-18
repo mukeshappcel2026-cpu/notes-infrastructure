@@ -61,7 +61,7 @@ variable "cluster_version" {
 variable "node_instance_types" {
   description = "EC2 instance types for worker nodes"
   type        = list(string)
-  default     = ["m5.xlarge"]
+  default     = ["t3.small"]
 }
 
 variable "node_desired_size" {
