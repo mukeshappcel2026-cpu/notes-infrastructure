@@ -312,14 +312,15 @@ resource "aws_security_group_rule" "nodes_to_cluster" {
   security_group_id        = aws_security_group.eks_cluster.id
 }
 
-# ALB → nodes (app traffic via NodePort + health checks)
+# ALB → EKS nodes (app traffic via NodePort + health checks)
+# Targets the EKS-managed cluster SG that nodes actually use
 resource "aws_security_group_rule" "alb_to_nodes" {
   type                     = "ingress"
   from_port                = 30080
   to_port                  = 30080
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.alb.id
-  security_group_id        = aws_security_group.eks_nodes.id
+  security_group_id        = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
 }
 
 # NLB health checks (NLB preserves client IP, allow from VPC CIDR)
@@ -329,7 +330,7 @@ resource "aws_security_group_rule" "nlb_to_nodes" {
   to_port           = 30080
   protocol          = "tcp"
   cidr_blocks       = [var.vpc_cidr]
-  security_group_id = aws_security_group.eks_nodes.id
+  security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
 }
 
 # Nodes egress to internet (via NAT)
